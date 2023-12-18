@@ -1,8 +1,20 @@
+require('dotenv').config()
+
 const express = require('express')
 const bodyparser = require('body-parser')
 const bcrypt = require('bcrypt-nodejs')
 const cors = require('cors')
 const knex = require('knex')
+const jwt = require('jsonwebtoken')
+
+const users = [
+    {username: 'r'},
+    {username: 'p'}
+]
+
+const access = process.env.ACCESS_TOKEN_SECRET
+
+// const fsPromises = require('fs').promises
 
 const app = express()
 app.use(bodyparser.json())
@@ -18,15 +30,77 @@ const db = knex({
   }
 });
 
+
+const verifyJWT = (req, res, next) => {
+        const authHeader = req.headers['authorization']
+        if(!authHeader) return res.sendStatus(400)
+        // console.log(authHeader);
+        const token = authHeader?.split(' ')[1]
+        jwt.verify(
+            token,
+            access,
+            (err, user) => {
+                // console.log(email);
+                if(err) return res.sendStatus(403)
+                req.user = user
+                next()
+            }
+        ) 
+    }
+
+
 app.get('/', (res) => {
     res.json('it is working!')
+})
+
+app.get('/post', verifyJWT, (req, res) => {
+    console.log(req.user);
+    db.select('*').from('users')
+    .then(data => {
+        res.json(data.filter(user => user.email === req.user.email))
+    })
+})
+
+app.post('/log', (req, res) => {
+    const {email, password} = req.body
+    if(!email || !password) {
+        res.status(400).json('incorrect form submission')    }
+    
+    db.select('email', 'hash').from('login')
+        .where('email', '=', email)
+        .then(data => {
+            const isValid = bcrypt.compareSync(password, data[0].hash)
+            if(isValid) {
+                return db.select('*').from('users')
+                .where('email', '=', email)
+                .then(data => {
+                    const email = data[0].email
+                    const user = {email: email}
+                    const accessToken = jwt.sign(
+                        user,
+                        access           
+                    )
+                    // const refreshToken = jwt.sign(
+                    //     {email: email},
+                    //     precess.env.REFRESH_TOKEN_SECRET,
+                    //     {expiresIn: '10m'}                
+                    // )
+                    res.json({accessToken: accessToken})
+                })
+                .catch(err => res.status(400).json('unable to get user'))
+            } else {
+                res.status(400).json('wrong cridentials')
+            }        
+        })
+        .catch(err =>  res.status(400).json('wrong cridentials'))
 })
 
 app.post('/signin', (req, res) => {
     const {email, password} = req.body
     if(!email || !password) {
-        res.status(400).json('incorrect form submission')
+        res.status(400).json('incorrect form submission')    
     }
+
     db.select('email', 'hash').from('login')
     .where('email', '=', email)
     .then(data => {
@@ -36,9 +110,6 @@ app.post('/signin', (req, res) => {
             .where('email', '=', email)
             .then(user => {
                 res.json(user[0])
-                // console.log(user[0].event_dates[0].slice(0,15));
-                // console.log(user[0].event_dates[0].slice(17,32));
-                // console.log(user[0].event_dates[0].length);
             })
             .catch(err => res.status(400).json('unable to get user'))
         } else {
