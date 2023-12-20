@@ -13,6 +13,7 @@ const users = [
 ]
 
 const access = process.env.ACCESS_TOKEN_SECRET
+const refresh = process.env.REFRESH_TOKEN_SECRET
 
 // const fsPromises = require('fs').promises
 
@@ -30,11 +31,13 @@ const db = knex({
   }
 });
 
+//  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InIiLCJpYXQiOjE3MDI4OTUyODEsImV4cCI6MTcwMjg5NjE4MX0.u4kWGcSs8lbClUn7g-vRtkYrx-xfJW03qH9W_fLNJuY",
+//     "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InIiLCJpYXQiOjE3MDI4OTUyODF9.HRJIDsDbUWTNggCGd4JqCg1fbr_MKH43O_UpWMqvKN4"
+// // 
 
 const verifyJWT = (req, res, next) => {
         const authHeader = req.headers['authorization']
         if(!authHeader) return res.sendStatus(400)
-        // console.log(authHeader);
         const token = authHeader?.split(' ')[1]
         jwt.verify(
             token,
@@ -48,13 +51,27 @@ const verifyJWT = (req, res, next) => {
         ) 
     }
 
+const generateAccess = (user) => jwt.sign(user, access, {expiresIn: '30s'})
+
 
 app.get('/', (res) => {
     res.json('it is working!')
 })
 
+app.post('/token', (req, res) => {
+    const refreshToken = req.body.token
+    db.select('*').from('login').where({refresh: refreshToken})
+    .then(data => {
+        jwt.verify(data[0].refresh, refresh, (err, user) => {
+            if (err) res.sendStatus(403)
+            const accessToken = generateAccess({email: user.email})
+            res.json({accessToken: accessToken})
+        })
+    })
+    .catch(err => res.status(403).json('refreshToken is incorrect'))
+})
+
 app.get('/post', verifyJWT, (req, res) => {
-    console.log(req.user);
     db.select('*').from('users')
     .then(data => {
         res.json(data.filter(user => user.email === req.user.email))
@@ -76,16 +93,14 @@ app.post('/log', (req, res) => {
                 .then(data => {
                     const email = data[0].email
                     const user = {email: email}
-                    const accessToken = jwt.sign(
-                        user,
-                        access           
-                    )
-                    // const refreshToken = jwt.sign(
-                    //     {email: email},
-                    //     precess.env.REFRESH_TOKEN_SECRET,
-                    //     {expiresIn: '10m'}                
-                    // )
-                    res.json({accessToken: accessToken})
+                    const accessToken = generateAccess(user)
+                    const refreshToken = jwt.sign(user, refresh, {expiresIn: '6h'})
+                    db.select('*').from('login').where({email: email})
+                    .update({refresh: refreshToken}).returning('*')
+                    .then(data => {
+                        res.cookie('jwt', data[0].refresh, {httpOnly: true, maxAge: 24 * 60 * 60 * 1000})
+                        res.json({accessToken: accessToken})
+                    })
                 })
                 .catch(err => res.status(400).json('unable to get user'))
             } else {
@@ -93,6 +108,14 @@ app.post('/log', (req, res) => {
             }        
         })
         .catch(err =>  res.status(400).json('wrong cridentials'))
+})
+
+app.post('/logout', (req, res) => {
+    const {email} = req.body
+    db('login').where({email: email})
+    .update({refresh: null})
+    .returning('*')
+    .then(data => res.json(data))
 })
 
 app.post('/signin', (req, res) => {
