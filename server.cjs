@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt-nodejs')
 const cors = require('cors')
 const knex = require('knex')
 const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 
 const users = [
     {username: 'r'},
@@ -19,6 +20,7 @@ const refresh = process.env.REFRESH_TOKEN_SECRET
 
 const app = express()
 app.use(bodyparser.json())
+app.use(cookieParser())
 app.use(cors())
 
 const db = knex({
@@ -31,9 +33,6 @@ const db = knex({
   }
 });
 
-//  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InIiLCJpYXQiOjE3MDI4OTUyODEsImV4cCI6MTcwMjg5NjE4MX0.u4kWGcSs8lbClUn7g-vRtkYrx-xfJW03qH9W_fLNJuY",
-//     "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InIiLCJpYXQiOjE3MDI4OTUyODF9.HRJIDsDbUWTNggCGd4JqCg1fbr_MKH43O_UpWMqvKN4"
-// // 
 
 const verifyJWT = (req, res, next) => {
         const authHeader = req.headers['authorization']
@@ -43,15 +42,14 @@ const verifyJWT = (req, res, next) => {
             token,
             access,
             (err, user) => {
-                // console.log(email);
-                if(err) return res.sendStatus(403)
+                if(err) return res.status(403).json('bad token')
                 req.user = user
                 next()
             }
         ) 
     }
 
-const generateAccess = (user) => jwt.sign(user, access, {expiresIn: '30s'})
+const generateAccess = (user) => jwt.sign(user, access, {expiresIn: '5m'})
 
 
 app.get('/', (res) => {
@@ -63,9 +61,9 @@ app.post('/token', (req, res) => {
     db.select('*').from('login').where({refresh: refreshToken})
     .then(data => {
         jwt.verify(data[0].refresh, refresh, (err, user) => {
-            if (err) res.sendStatus(403)
+            if (err) return res.status(403).json('bad token')
             const accessToken = generateAccess({email: user.email})
-            res.json({accessToken: accessToken})
+            res.json(accessToken)
         })
     })
     .catch(err => res.status(403).json('refreshToken is incorrect'))
@@ -98,8 +96,7 @@ app.post('/log', (req, res) => {
                     db.select('*').from('login').where({email: email})
                     .update({refresh: refreshToken}).returning('*')
                     .then(data => {
-                        res.cookie('jwt', data[0].refresh, {httpOnly: true, maxAge: 24 * 60 * 60 * 1000})
-                        res.json({accessToken: accessToken})
+                        res.json({accessToken: accessToken, refreshToken: data[0].refresh})
                     })
                 })
                 .catch(err => res.status(400).json('unable to get user'))
@@ -118,29 +115,29 @@ app.post('/logout', (req, res) => {
     .then(data => res.json(data))
 })
 
-app.post('/signin', (req, res) => {
-    const {email, password} = req.body
-    if(!email || !password) {
-        res.status(400).json('incorrect form submission')    
-    }
+// app.post('/signin', (req, res) => {
+//     const {email, password} = req.body
+//     if(!email || !password) {
+//         res.status(400).json('incorrect form submission')    
+//     }
 
-    db.select('email', 'hash').from('login')
-    .where('email', '=', email)
-    .then(data => {
-        const isValid = bcrypt.compareSync(password, data[0].hash)
-        if(isValid) {
-            return db.select('*').from('users')
-            .where('email', '=', email)
-            .then(user => {
-                res.json(user[0])
-            })
-            .catch(err => res.status(400).json('unable to get user'))
-        } else {
-            res.status(400).json('wrong cridentials')
-        }        
-    })
-    .catch(err =>  res.status(400).json('wrong cridentials'))
-})
+//     db.select('email', 'hash').from('login')
+//     .where('email', '=', email)
+//     .then(data => {
+//         const isValid = bcrypt.compareSync(password, data[0].hash)
+//         if(isValid) {
+//             return db.select('*').from('users')
+//             .where('email', '=', email)
+//             .then(user => {
+//                 res.json(user[0])
+//             })
+//             .catch(err => res.status(400).json('unable to get user'))
+//         } else {
+//             res.status(400).json('wrong cridentials')
+//         }        
+//     })
+//     .catch(err =>  res.status(400).json('wrong cridentials'))
+// })
 
 app.post('/register', (req, res) => {
     const {firstName, lastName, email, password} = req.body
@@ -211,6 +208,6 @@ app.put('/add', (req, res) => {
     })
 })
 
-app.listen(3000, () => {
+app.listen(4000, () => {
     console.log('app is running')
 })
