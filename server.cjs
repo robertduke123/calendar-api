@@ -184,6 +184,7 @@ app.post('/register', (req, res) => {
 
 app.put('/add', (req, res) => {
     const {email, name, details, dates, time, period, Sun, Mon, Tue, Wed, Thu, Fri, Sat} = req.body
+    const joined = dates.join(', ')
 
     db.select('*').from('users').where({email: email})    
     .returning('*')
@@ -192,7 +193,7 @@ app.put('/add', (req, res) => {
         .update({
             event_name: [...data[0].event_name, name],
             event_details: [...data[0].event_details, details],
-            event_dates: [...data[0].event_dates, dates],
+            event_dates: [...data[0].event_dates, joined],
             event_time: [...data[0].event_time, time],
             event_period: [...data[0].event_period, period],
             event_sun: [...data[0].event_sun, Sun],
@@ -202,6 +203,59 @@ app.put('/add', (req, res) => {
             event_thu: [...data[0].event_thu, Thu],
             event_fri: [...data[0].event_fri, Fri],
             event_sat: [...data[0].event_sat, Sat]
+        })
+        .returning('*')
+        .then(data => res.json(data[0]))
+    })
+})
+
+app.post('/edit', (req, res) => {
+    const {email, oldName, newName, details, dates, time, period, Sun, Mon, Tue, Wed, Thu, Fri, Sat} = req.body
+
+    db.select('*').from('users').where({email: email})    
+    .returning('*')
+    .then(data => {
+        let index = data[0].event_name.indexOf(oldName)
+        let currentName = data[0].event_name
+        let currentDetails = data[0].event_details
+        let currentDates = data[0].event_dates
+        let currentTime = data[0].event_time
+        let currentPeriod = data[0].event_period
+        let currentSun = data[0].event_sun
+        let currentMon = data[0].event_mon
+        let currentTue = data[0].event_tue
+        let currentWed = data[0].event_wed
+        let currentThu = data[0].event_thu
+        let currentFri = data[0].event_fri
+        let currentSat = data[0].event_sat
+
+        currentName[index] = newName
+        currentDetails[index] = details
+        currentDates[index] = dates.join(', ')
+        currentTime[index] = time
+        currentPeriod[index] = period
+        currentSun[index] = Sun
+        currentMon[index] = Mon
+        currentTue[index] = Tue
+        currentWed[index] = Wed
+        currentThu[index] = Thu
+        currentFri[index] = Fri
+        currentSat[index] = Sat
+
+         db.select('*').from('users').where({email: email})
+        .update({
+            event_name: currentName,
+            event_details: currentDetails,
+            event_dates: currentDates,
+            event_time: currentTime,
+            event_period: currentPeriod,
+            event_sun: currentSun,
+            event_mon: currentMon,
+            event_tue: currentTue,
+            event_wed: currentWed,
+            event_thu: currentThu,
+            event_fri: currentFri,
+            event_sat: currentSat
         })
         .returning('*')
         .then(data => res.json(data[0]))
