@@ -112,7 +112,7 @@ app.post('/logout', (req, res) => {
     db('login').where({email: email})
     .update({refresh: null})
     .returning('*')
-    .then(data => res.json(data))
+    .then(data => res.json('log out seccessful'))
 })
 
 // app.post('/signin', (req, res) => {
@@ -144,42 +144,50 @@ app.post('/register', (req, res) => {
     if(!email || !firstName || !lastName || !password) {
         res.status(400).json('incorrect form submission')
     }
-    const hash = bcrypt.hashSync(password)
-    db.transaction(trx => {
-        trx.insert({
-            hash: hash,
-            email: email
-        })
-        .into('login')
-        .returning('email')
-        .then(loginEmail => {
-            return trx('users')
-                .returning('*')
-                .insert({
-                    first_name: firstName,
-                    last_name: lastName,
-                    email: loginEmail[0].email, 
-                    event_name: [],
-                    event_details: [],
-                    event_dates: [],
-                    event_time: [],
-                    event_period: [],
-                    event_sun: [],
-                    event_mon: [],
-                    event_tue: [],
-                    event_wed: [],
-                    event_thu: [],
-                    event_fri: [],
-                    event_sat: []                   
+
+    db.select('*').from('login').then(data => {
+        data.forEach(user => {
+            if(user.email === email) return res.status(400).json('email is already used')
+
+            const hash = bcrypt.hashSync(password)
+            db.transaction(trx => {
+                trx.insert({
+                    hash: hash,
+                    email: email
                 })
-                .then(user => {
-                    res.json(user[0])
+                .into('login')
+                .returning('email')
+                .then(loginEmail => {
+                    return trx('users')
+                        .returning('*')
+                        .insert({
+                            first_name: firstName,
+                            last_name: lastName,
+                            email: loginEmail[0].email, 
+                            event_name: [],
+                            event_details: [],
+                            event_dates: [],
+                            event_time: [],
+                            event_period: [],
+                            event_sun: [],
+                            event_mon: [],
+                            event_tue: [],
+                            event_wed: [],
+                            event_thu: [],
+                            event_fri: [],
+                            event_sat: []                   
+                        })
+                        .then(user => {
+                            res.json(user[0])
+                        })
                 })
+                .then(trx.commit)
+                .catch(trx.rollback)
+            })
+            .catch(err => res.status(400).json('unable to register'))
         })
-        .then(trx.commit)
-        .catch(trx.rollback)
     })
-    .catch(err => res.status(400).json('unable to register'))
+    
 })
 
 app.put('/add', (req, res) => {
@@ -205,7 +213,7 @@ app.put('/add', (req, res) => {
             event_sat: [...data[0].event_sat, Sat]
         })
         .returning('*')
-        .then(data => res.json(data[0]))
+        .then(data => res.json('addition complete'))
     })
 })
 
@@ -258,7 +266,60 @@ app.post('/edit', (req, res) => {
             event_sat: currentSat
         })
         .returning('*')
-        .then(data => res.json(data[0]))
+        .then(data => res.json('edit complete'))
+    })
+})
+
+app.post('/del', (req, res) => {
+    const {email, name} = req.body
+
+    db.select('*').from('users').where({email: email})    
+    .returning('*')
+    .then(data => {
+        let index = data[0].event_name.indexOf(name)
+        let currentName = data[0].event_name
+        let currentDetails = data[0].event_details
+        let currentDates = data[0].event_dates
+        let currentTime = data[0].event_time
+        let currentPeriod = data[0].event_period
+        let currentSun = data[0].event_sun
+        let currentMon = data[0].event_mon
+        let currentTue = data[0].event_tue
+        let currentWed = data[0].event_wed
+        let currentThu = data[0].event_thu
+        let currentFri = data[0].event_fri
+        let currentSat = data[0].event_sat
+
+        currentName.splice(index, 1)
+        currentDetails.splice(index, 1)
+        currentDates.splice(index, 1)
+        currentTime.splice(index, 1)
+        currentPeriod.splice(index, 1)
+        currentSun.splice(index, 1)
+        currentMon.splice(index, 1)
+        currentTue.splice(index, 1)
+        currentWed.splice(index, 1)
+        currentThu.splice(index, 1)
+        currentFri.splice(index, 1)
+        currentSat.splice(index, 1)
+
+         db.select('*').from('users').where({email: email})
+        .update({
+            event_name: currentName,
+            event_details: currentDetails,
+            event_dates: currentDates,
+            event_time: currentTime,
+            event_period: currentPeriod,
+            event_sun: currentSun,
+            event_mon: currentMon,
+            event_tue: currentTue,
+            event_wed: currentWed,
+            event_thu: currentThu,
+            event_fri: currentFri,
+            event_sat: currentSat
+        })
+        .returning('*')
+        .then(data => res.json('delete complete'))
     })
 })
 
