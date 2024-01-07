@@ -50,7 +50,7 @@ const verifyJWT = (req, res, next) => {
 
 const generateAccess = (user) => jwt.sign(user, access, { expiresIn: "5m" });
 
-app.get("/", (res) => {
+app.get("/", (req, res) => {
 	res.json("it is working!");
 });
 
