@@ -55,6 +55,12 @@ app.get("/", (req, res) => {
 	res.json("it is working!");
 });
 
+app.get("/test", (req, res) => {
+	db("users")
+		.returning("*")
+		.then((data) => res.json(data));
+});
+
 app.post("/token", (req, res) => {
 	const refreshToken = req.body.token;
 	db.select("*")
