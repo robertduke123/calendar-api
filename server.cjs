@@ -52,10 +52,7 @@ const verifyJWT = (req, res, next) => {
 const generateAccess = (user) => jwt.sign(user, access, { expiresIn: "5m" });
 
 app.get("/", (req, res) => {
-	// res.json("it is working!");
-	db("users")
-		.returning("*")
-		.then((data) => res.json(data));
+	res.json("it is working!");
 });
 
 app.post("/token", (req, res) => {
@@ -359,31 +356,3 @@ app.post("/del", (req, res) => {
 app.listen(4000, () => {
 	console.log("app is running");
 });
-
-// CREATE TABLE login
-// (
-//     id integer PRIMARY KEY NOT NULL,
-//     hash character varying(100),
-//     refresh character varying(1000),
-//     email text UNIQUE
-// );
-
-// CREATE TABLE users
-// (
-//     id integer PRIMARY KEY NOT NULL,
-//     first_name text,
-//     last_name text,
-//     email text UNIQUE,
-//     event_name text[],
-//     event_details text[],
-//     event_dates text[],
-//     event_time text[],
-//     event_period text[],
-//     event_sun boolean[],
-//     event_mon boolean[],
-//     event_tue boolean[],
-//     event_wed boolean[],
-//     event_thu boolean[],
-//     event_fri boolean[],
-//     event_sat boolean[]
-// );
