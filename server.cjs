@@ -19,12 +19,23 @@ app.use(cors());
 const db = knex({
 	client: "pg",
 	connection: {
-		host: "127.0.0.1",
-		user: "postgres",
-		password: "Wiggles123",
-		database: "calendar",
+		host: "dpg-cmc8km8cmk4c73bnps50-a",
+		port: 5432,
+		user: "calendar_db_s7nx_user",
+		password: "N1aK5plONZRWGQHkXWP7KesJyCnighcC",
+		database: "calendar_db_s7nx",
 	},
 });
+
+// const db = knex({
+// 	client: "pg",
+// 	connection: {
+// 		host: "127.0.0.1",
+// 		user: "postgres",
+// 		password: "Wiggles123",
+// 		database: "calendar",
+// 	},
+// });
 
 const verifyJWT = (req, res, next) => {
 	const authHeader = req.headers["authorization"];
