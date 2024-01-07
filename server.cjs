@@ -6,24 +6,25 @@ const bcrypt = require("bcrypt-nodejs");
 const cors = require("cors");
 const knex = require("knex");
 const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
 
 const access = process.env.ACCESS_TOKEN_SECRET;
 const refresh = process.env.REFRESH_TOKEN_SECRET;
 
 const app = express();
 app.use(bodyparser.json());
-app.use(cookieParser());
 app.use(cors());
 
 const db = knex({
 	client: "pg",
 	connection: {
-		host: "dpg-cmc8km8cmk4c73bnps50-a",
+		connectionString:
+			"postgres://calendar_db_uv6h_user:ffJjdQMuMRX8dezkrJ00sI93BXuUBYFK@dpg-cmd37sf109ks7394lu10-a.oregon-postgres.render.com/calendar_db_uv6h",
+		ssl: { rejectUnauthorized: false },
+		host: "dpg-cmd37sf109ks7394lu10-a",
 		port: 5432,
-		user: "calendar_db_s7nx_user",
-		password: "N1aK5plONZRWGQHkXWP7KesJyCnighcC",
-		database: "calendar_db_s7nx",
+		user: "calendar_db_uv6h_user",
+		password: "ffJjdQMuMRX8dezkrJ00sI93BXuUBYFK",
+		database: "calendar_db_uv6h",
 	},
 });
 
@@ -51,7 +52,10 @@ const verifyJWT = (req, res, next) => {
 const generateAccess = (user) => jwt.sign(user, access, { expiresIn: "5m" });
 
 app.get("/", (req, res) => {
-	res.json("it is working!");
+	// res.json("it is working!");
+	db("users")
+		.returning("*")
+		.then((data) => res.json(data));
 });
 
 app.post("/token", (req, res) => {
@@ -355,3 +359,31 @@ app.post("/del", (req, res) => {
 app.listen(4000, () => {
 	console.log("app is running");
 });
+
+// CREATE TABLE login
+// (
+//     id integer PRIMARY KEY NOT NULL,
+//     hash character varying(100),
+//     refresh character varying(1000),
+//     email text UNIQUE
+// );
+
+// CREATE TABLE users
+// (
+//     id integer PRIMARY KEY NOT NULL,
+//     first_name text,
+//     last_name text,
+//     email text UNIQUE,
+//     event_name text[],
+//     event_details text[],
+//     event_dates text[],
+//     event_time text[],
+//     event_period text[],
+//     event_sun boolean[],
+//     event_mon boolean[],
+//     event_tue boolean[],
+//     event_wed boolean[],
+//     event_thu boolean[],
+//     event_fri boolean[],
+//     event_sat boolean[]
+// );
