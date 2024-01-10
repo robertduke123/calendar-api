@@ -17,14 +17,13 @@ app.use(cors());
 const db = knex({
 	client: "pg",
 	connection: {
-		connectionString:
-			"postgres://calendar_db_uv6h_user:ffJjdQMuMRX8dezkrJ00sI93BXuUBYFK@dpg-cmd37sf109ks7394lu10-a.oregon-postgres.render.com/calendar_db_uv6h",
+		connectionString: process.env.RENDER_CONNECTION,
 		ssl: { rejectUnauthorized: false },
-		host: "dpg-cmd37sf109ks7394lu10-a",
+		host: process.env.RENDER_HOST,
 		port: 5432,
-		user: "calendar_db_uv6h_user",
-		password: "ffJjdQMuMRX8dezkrJ00sI93BXuUBYFK",
-		database: "calendar_db_uv6h",
+		user: process.env.RENDER_USER,
+		password: process.env.RENDER_PASSWORD,
+		database: process.env.RENDER_DATABASE,
 	},
 });
 
