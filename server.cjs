@@ -27,16 +27,6 @@ const db = knex({
 	},
 });
 
-// const db = knex({
-// 	client: "pg",
-// 	connection: {
-// 		host: "127.0.0.1",
-// 		user: "postgres",
-// 		password: "Wiggles123",
-// 		database: "calendar",
-// 	},
-// });
-
 const verifyJWT = (req, res, next) => {
 	const authHeader = req.headers["authorization"];
 	if (!authHeader) return res.sendStatus(400);
